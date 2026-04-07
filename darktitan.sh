@@ -14,16 +14,21 @@ BINARY="darktitan"
 # --- Validate token ---
 if [ -z "${GITHUB_TOKEN:-}" ]; then
   echo "Error: GITHUB_TOKEN is not set."
-  echo ""                                                                                                                       echo "Usage:"
+  echo ""
+  echo "Usage:"
   echo "  curl -fsSL https://raw.githubusercontent.com/develeap/install/main/darktitan.sh | GITHUB_TOKEN=ghp_xxx bash"
   echo ""
   echo "Your token needs 'repo' read access to develeap/darktitan."
   exit 1
 fi
-                                                                                                                              # --- Detect OS ---
-OS="$(uname -s)"                                                                                                              if [ "$OS" != "Linux" ]; then
-  echo "Error: This installer is for Linux only."                                                                               echo ""
-  echo "macOS users, install via Homebrew:"                                                                                     echo "  HOMEBREW_GITHUB_API_TOKEN=ghp_xxx brew install develeap/tap/darktitan"
+
+# --- Detect OS ---
+OS="$(uname -s)"
+if [ "$OS" != "Linux" ]; then
+  echo "Error: This installer is for Linux only."
+  echo ""
+  echo "macOS users, install via Homebrew:"
+  echo "  HOMEBREW_GITHUB_API_TOKEN=ghp_xxx brew install develeap/tap/darktitan"
   exit 1
 fi
 
@@ -66,7 +71,8 @@ else
   VERSION=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
 fi
 
-if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then                                                                           echo "Error: Could not determine latest release version. Check that your token has repo read access."
+if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+  echo "Error: Could not determine latest release version. Check that your token has repo read access."
   exit 1
 fi
 
@@ -75,6 +81,7 @@ echo "Version: ${VERSION}"
 # Strip leading 'v' for filename (goreleaser uses bare version numbers)
 VERSION_NUM="${VERSION#v}"
 ASSET_NAME="${BINARY}_${VERSION_NUM}_linux_${ARCH}.tar.gz"
+
 # --- Find matching asset ID ---
 if command -v jq &>/dev/null; then
   ASSET_ID=$(echo "$RELEASE" | jq -r ".assets[] | select(.name == \"${ASSET_NAME}\") | .id")
@@ -86,15 +93,18 @@ match = next((a['id'] for a in assets if a['name'] == '${ASSET_NAME}'), None)
 print(match if match is not None else '')
 ")
 fi
+
 if [ -z "$ASSET_ID" ] || [ "$ASSET_ID" = "null" ]; then
   echo "Error: Asset '${ASSET_NAME}' not found in release ${VERSION}."
   exit 1
 fi
 
 # --- Download ---
-echo "Downloading ${ASSET_NAME}..."                                                                                           TMPDIR=$(mktemp -d)
+echo "Downloading ${ASSET_NAME}..."
+TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
-                                                                                                                              curl -fsSL \
+
+curl -fsSL \
   -H "Authorization: token ${GITHUB_TOKEN}" \
   -H "Accept: application/octet-stream" \
   "https://api.github.com/repos/${REPO}/releases/assets/${ASSET_ID}" \
@@ -111,7 +121,8 @@ else
   mkdir -p "$INSTALL_DIR"
 fi
 
-mv "${TMPDIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"                                                                           chmod +x "${INSTALL_DIR}/${BINARY}"
+mv "${TMPDIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
+chmod +x "${INSTALL_DIR}/${BINARY}"
 
 echo "Installed: ${INSTALL_DIR}/${BINARY}"
 
@@ -126,5 +137,6 @@ fi
 # --- Verify ---
 echo ""
 "${INSTALL_DIR}/${BINARY}" version
-echo ""                                                                                                                       echo "DarkTitan installed successfully!"
+echo ""
+echo "DarkTitan installed successfully!"
 echo "Run 'darktitan init' to get started."
